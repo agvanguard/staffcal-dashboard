@@ -100,13 +100,10 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
-        .main-content {
-            padding: 30px;
-        }
-
         .calendar-container {
             background: white;
             border-radius: 16px;
+            margin: 30px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             overflow: hidden;
         }
@@ -159,7 +156,6 @@
             cursor: pointer;
             transition: all 0.3s ease;
             background: white;
-            position: relative;
         }
 
         .calendar-day:hover {
@@ -196,7 +192,6 @@
             height: 100%;
             background: rgba(0, 0, 0, 0.7);
             z-index: 1000;
-            backdrop-filter: blur(10px);
         }
 
         .modal.active {
@@ -209,9 +204,8 @@
             background: white;
             padding: 30px;
             border-radius: 20px;
-            max-width: 600px;
+            max-width: 700px;
             width: 90%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             max-height: 80vh;
             overflow-y: auto;
             position: relative;
@@ -240,9 +234,8 @@
         }
 
         @media (max-width: 768px) {
-            .controls { flex-direction: column; align-items: stretch; }
+            .controls { flex-direction: column; }
             .calendar-day { min-height: 100px; padding: 4px; }
-            .team-info { padding: 2px; font-size: 8px; }
         }
     </style>
 </head>
@@ -268,7 +261,7 @@
                         <rect x="125" y="180" width="25" height="15" rx="12" fill="#1e3a8a"/>
                     </svg>
                 </div>
-                <h1 style="font-size: 3em; margin: 0;">StaffCal</h1>
+                <h1>StaffCal</h1>
             </div>
             <div class="subtitle">CHT Staffing Calendar Dashboard</div>
         </div>
@@ -276,10 +269,10 @@
         <div class="controls">
             <div class="control-group">
                 <label>📊 Data Management</label>
-                <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                     <input type="file" id="csvFile" accept=".csv" style="display: none;">
-                    <button class="button" onclick="document.getElementById('csvFile').click()">📂 Import CSV</button>
-                    <button class="button" onclick="downloadCSV()" style="background: #0891b2;">📊 Download CSV</button>
+                    <button class="button" onclick="document.getElementById('csvFile').click()">📂 Import</button>
+                    <button class="button" onclick="downloadCSV()" style="background: #0891b2;">📊 Download</button>
                     <button class="button" onclick="showHelp()" style="background: #6b7280;">❓ Help</button>
                     <button class="button" onclick="debugData()" style="background: #ef4444;">🔍 Debug</button>
                 </div>
@@ -300,22 +293,20 @@
             </div>
 
             <div class="control-group">
-                <label>📊 Data Status</label>
-                <div id="dataStatus" style="padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; background: #6b7280; color: white;">
+                <label>Status</label>
+                <div id="dataStatus" style="padding: 8px 12px; border-radius: 8px; font-size: 12px; background: #6b7280; color: white; font-weight: 600;">
                     Ready to import
                 </div>
             </div>
         </div>
 
-        <div class="main-content">
-            <div class="calendar-container">
-                <div class="calendar-header">
-                    <button class="nav-button" onclick="navigateMonth(-1)">‹ Previous</button>
-                    <h2 id="currentMonth">January 2025</h2>
-                    <button class="nav-button" onclick="navigateMonth(1)">Next ›</button>
-                </div>
-                <div class="calendar-grid" id="calendarGrid"></div>
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <button class="nav-button" onclick="navigateMonth(-1)">‹ Previous</button>
+                <h2 id="currentMonth">January 2025</h2>
+                <button class="nav-button" onclick="navigateMonth(1)">Next ›</button>
             </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
         </div>
     </div>
 
@@ -338,84 +329,80 @@
         const SPREADSHEET_ID = '15YqO6JxqZXKRq27ApxL9RNdW3Ujg5ps4LV7ZrmmLG34';
         const SUMMARY_TAB_GID = '1527296774';
 
-        const sampleData = {
-            '2025-01-27': {
-                'Customer Service (email)': { 
-                    total: 25, net_staffing: 5, required: 20, 
-                    channels: ['email'], queue: 'Customer Service', channel: 'email',
-                    hourly: { 8: {staffing_net: 15} }
-                }
-            }
-        };
+        const sampleData = { '2025-01-27': { 'Sample': { total: 25, required: 20, net_staffing: 5, queue: 'Sample', channel: 'email', hourly: {} }}};
 
         function downloadCSV() {
-            const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${SUMMARY_TAB_GID}`;
-            const link = document.createElement('a');
-            link.href = csvUrl;
-            link.download = 'staffing_data.csv';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${SUMMARY_TAB_GID}`;
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'staffing.csv';
+            a.click();
             updateDataStatus('📊 Downloading...', '#0891b2');
         }
 
-        document.getElementById('csvFile').addEventListener('change', function(e) {
-            if (!e.target.files.length) return;
-            
-            updateDataStatus('⏳ Processing...', '#fbbf24');
+        document.getElementById('csvFile').addEventListener('change', e => {
+            if (!e.target.files[0]) return;
+            updateDataStatus('⏳ Loading...', '#fbbf24');
             
             const reader = new FileReader();
-            reader.onload = (e) => setTimeout(() => parseCSV(e.target.result), 100);
+            reader.onload = e => parseCSV(e.target.result);
             reader.readAsText(e.target.files[0]);
         });
 
-        function parseCSV(csvText) {
-            try {
-                console.log('📋 Parsing CSV...');
-                const lines = csvText.split('\n');
-                const headers = parseCSVLine(lines[0]).map(h => h.trim().replace(/"/g, ''));
-                const data = [];
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            const headers = parseLine(lines[0]).map(h => h.trim().replace(/"/g, ''));
+            const data = [];
 
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
 
-                    const values = parseCSVLine(line);
-                    const row = {};
-                    headers.forEach((h, idx) => row[h] = (values[idx] || '').trim().replace(/"/g, ''));
-                    
-                    if (Object.values(row).some(v => v.length > 0)) {
-                        data.push(row);
-                    }
-                }
-
-                assembledData = data;
-                console.log(`✅ Parsed ${data.length} rows`);
-                processDataEfficiently();
-
-            } catch (error) {
-                console.error('Parse error:', error);
-                updateDataStatus('❌ Parse failed', '#ef4444');
+                const vals = parseLine(line);
+                const row = {};
+                headers.forEach((h, j) => row[h] = (vals[j] || '').trim().replace(/"/g, ''));
+                
+                if (Object.values(row).some(v => v)) data.push(row);
             }
+
+            assembledData = data;
+            console.log(`✅ Loaded ${data.length} rows`);
+            processData();
         }
 
-        function processDataEfficiently() {
-            console.log('🔄 Processing data...');
+        function parseLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let char of line) {
+                if (char === '"') inQuotes = !inQuotes;
+                else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else current += char;
+            }
+            result.push(current);
+            return result;
+        }
+
+        function processData() {
+            console.log('🔄 Processing data with Column H capture...');
             
             processedData = {};
             availableQueues.clear();
             availableChannels.clear();
 
-            assembledData.forEach((row, i) => {
+            assembledData.forEach((row, idx) => {
                 const cols = Object.values(row);
                 
                 const date = formatDate(cols[0]);
                 const time = cols[1] || '';
                 const channel = (cols[3] || '').trim();
                 const queue = (cols[4] || '').trim();
-                const colF = parseFloat(cols[5] || 0);
-                const colG = parseFloat(cols[6] || 0);
-                const colH = parseFloat(cols[7] || 0);
+                const F = parseFloat(cols[5] || 0);
+                const G = parseFloat(cols[6] || 0);
+                const H = parseFloat(cols[7] || 0);
 
                 if (!date || !queue || !channel) return;
 
@@ -427,116 +414,84 @@
                 if (!processedData[date]) processedData[date] = {};
                 if (!processedData[date][key]) {
                     processedData[date][key] = {
-                        queue, channel,
-                        sumF: 0, sumG: 0,
+                        queue, 
+                        channel,
+                        sumF: 0, 
+                        sumG: 0,
                         hourly: {}
                     };
                 }
 
-                processedData[date][key].sumF += colF;
-                processedData[date][key].sumG += colG;
+                // Accumulate Column F and G sums
+                processedData[date][key].sumF += F;
+                processedData[date][key].sumG += G;
 
-                const hour = extractHourFromTime(time);
+                // Accumulate Column H values per hour
+                const hour = getHour(time);
                 if (hour !== null) {
                     if (!processedData[date][key].hourly[hour]) {
                         processedData[date][key].hourly[hour] = { staffing_net: 0 };
                     }
-                    processedData[date][key].hourly[hour].staffing_net += colH;
+                    // SUM Column H values for this hour
+                    processedData[date][key].hourly[hour].staffing_net += H;
                 }
             });
 
-            // Calculate daily values
+            // Calculate final daily values using the formula
             Object.values(processedData).forEach(dateData => {
-                Object.values(dateData).forEach(qData => {
-                    qData.total = qData.sumF / 7.5;
-                    qData.required = qData.sumG / 7.5;
-                    qData.net_staffing = qData.total - qData.required;
-                    delete qData.sumF;
-                    delete qData.sumG;
+                Object.values(dateData).forEach(q => {
+                    q.total = q.sumF / 7.5;                    // Scheduled = Sum(F) ÷ 7.5
+                    q.required = q.sumG / 7.5;                 // Required = Sum(G) ÷ 7.5
+                    q.net_staffing = q.total - q.required;     // Net = Scheduled - Required
+                    delete q.sumF;
+                    delete q.sumG;
                 });
             });
 
             dataSource = 'assembled';
             updateFilterDropdowns();
             updateCalendarDisplay();
-            updateDataStatus(`✅ ${assembledData.length} records loaded`, '#10b981');
-            console.log('✅ Processing complete');
+            updateDataStatus(`✅ ${assembledData.length} records`, '#10b981');
+            console.log('✅ Complete - Column H summed per hour');
         }
 
-        function extractHourFromTime(timeStr) {
-            try {
-                const t = timeStr.toString().trim().toLowerCase();
-                
-                if (t.includes('am') || t.includes('pm')) {
-                    const isPM = t.includes('pm');
-                    const timePart = t.replace(/\s*(am|pm)/g, '').trim();
-                    
-                    if (timePart.includes(':')) {
-                        let hour = parseInt(timePart.split(':')[0]);
-                        if (isNaN(hour)) return null;
-                        
-                        if (isPM && hour !== 12) hour += 12;
-                        else if (!isPM && hour === 12) hour = 0;
-                        
-                        return (hour >= 0 && hour <= 23) ? hour : null;
-                    }
-                }
-                
-                if (t.includes(':')) {
-                    const hour = parseInt(t.split(':')[0]);
-                    return (hour >= 0 && hour <= 23) ? hour : null;
-                }
-                
-                return null;
-            } catch { return null; }
-        }
-
-        function parseCSVLine(line) {
-            const result = [];
-            let current = '';
-            let inQuotes = false;
+        function getHour(timeStr) {
+            const t = timeStr.toString().trim().toLowerCase();
             
-            for (let i = 0; i < line.length; i++) {
-                if (line[i] === '"') inQuotes = !inQuotes;
-                else if (line[i] === ',' && !inQuotes) {
-                    result.push(current);
-                    current = '';
-                } else current += line[i];
-            }
-            result.push(current);
-            return result;
-        }
-
-        function formatDate(dateStr) {
-            if (!dateStr) return new Date().toISOString().split('T')[0];
-            
-            if (dateStr.includes('/')) {
-                const [m, d, y] = dateStr.split('/');
-                return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+            if (t.includes('am') || t.includes('pm')) {
+                const isPM = t.includes('pm');
+                const time = t.replace(/\s*(am|pm)/g, '').trim();
+                
+                if (time.includes(':')) {
+                    let h = parseInt(time.split(':')[0]);
+                    if (isNaN(h)) return null;
+                    if (isPM && h !== 12) h += 12;
+                    else if (!isPM && h === 12) h = 0;
+                    return (h >= 0 && h <= 23) ? h : null;
+                }
             }
             
-            const date = new Date(dateStr);
+            if (t.includes(':')) {
+                const h = parseInt(t.split(':')[0]);
+                return (h >= 0 && h <= 23) ? h : null;
+            }
+            
+            return null;
+        }
+
+        function formatDate(d) {
+            if (!d) return new Date().toISOString().split('T')[0];
+            if (d.includes('/')) {
+                const [m, day, y] = d.split('/');
+                return `${y}-${m.padStart(2,'0')}-${day.padStart(2,'0')}`;
+            }
+            const date = new Date(d);
             return !isNaN(date) ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
         }
 
         function updateDataStatus(msg, color) {
-            const el = document.getElementById('dataStatus');
-            el.textContent = msg;
-            el.style.backgroundColor = color;
-        }
-
-        function showLoadingOverlay(show) {
-            let overlay = document.getElementById('loadingOverlay');
-            
-            if (show && !overlay) {
-                overlay = document.createElement('div');
-                overlay.id = 'loadingOverlay';
-                overlay.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: flex; align-items: center; justify-content: center;';
-                overlay.innerHTML = '<div style="background: white; padding: 40px; border-radius: 16px; text-align: center;"><div style="width: 60px; height: 60px; border: 4px solid #e2e8f0; border-top: 4px solid #4facfe; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div><h3>Processing...</h3></div>';
-                document.body.appendChild(overlay);
-            } else if (!show && overlay) {
-                overlay.remove();
-            }
+            document.getElementById('dataStatus').textContent = msg;
+            document.getElementById('dataStatus').style.backgroundColor = color;
         }
 
         function updateFilterDropdowns() {
@@ -580,19 +535,20 @@
                 
                 if (!matches.length) return;
                 
-                const shouldAggregate = selQ === 'all' || selC === 'all';
-                
-                if (shouldAggregate) {
-                    let name = selQ === 'all' && selC === 'all' ? 'All Queues (All Channels)' :
+                // Aggregate if "All" is selected for queue or channel
+                if (selQ === 'all' || selC === 'all') {
+                    const name = selQ === 'all' && selC === 'all' ? 'All Queues (All Channels)' :
                                selQ === 'all' ? `All Queues (${selC})` : `${selQ} (All Channels)`;
                     
                     let sumF = 0, sumG = 0;
                     const aggHourly = {};
                     
                     matches.forEach(m => {
+                        // Reverse the division to get original Column F and G sums
                         sumF += (m.data.total || 0) * 7.5;
                         sumG += (m.data.required || 0) * 7.5;
                         
+                        // Sum hourly Column H values
                         if (m.data.hourly) {
                             Object.entries(m.data.hourly).forEach(([h, hData]) => {
                                 if (!aggHourly[h]) aggHourly[h] = { staffing_net: 0 };
@@ -613,6 +569,7 @@
                         }
                     };
                 } else {
+                    // Show individual queue-channel entries
                     filtered[date] = {};
                     matches.forEach(m => {
                         const key = `${m.queue} (${m.channel})`;
@@ -665,22 +622,13 @@
                 num.className = 'day-number';
                 num.textContent = date.getDate();
                 
-                if (date.getMonth() !== currentDate.getMonth()) {
-                    dayEl.style.opacity = '0.4';
-                    dayEl.style.backgroundColor = '#f8fafc';
-                }
+                if (date.getMonth() !== currentDate.getMonth()) dayEl.style.opacity = '0.4';
 
                 if (date.toDateString() === today.toDateString()) {
                     Object.assign(num.style, {
-                        backgroundColor: '#4facfe',
-                        color: 'white',
-                        borderRadius: '50%',
-                        width: '28px',
-                        height: '28px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        margin: '0 auto'
+                        backgroundColor: '#4facfe', color: 'white', borderRadius: '50%',
+                        width: '28px', height: '28px', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', margin: '0 auto'
                     });
                 }
 
@@ -692,7 +640,7 @@
                         const info = document.createElement('div');
                         info.className = 'team-info';
                         info.innerHTML = `
-                            <div style="font-weight: 600; font-size: 10px; margin-bottom: 3px;">${d.displayName}</div>
+                            <div style="font-weight: 600; font-size: 10px; margin-bottom: 2px;">${d.displayName}</div>
                             <div style="font-size: 8px; text-align: center;">
                                 <div style="color: #1e40af;">📊 ${(d.total || 0).toFixed(1)}</div>
                                 <div style="color: #1e40af;">📋 ${(d.required || 0).toFixed(1)}</div>
@@ -717,12 +665,15 @@
             const filtered = getFilteredData();
             const dayData = filtered[dateKey] || {};
 
-            let content = `<h4>📊 ${date.toDateString()}</h4>`;
+            let content = `<h4>📊 ${date.toDateString()}</h4>
+                <div style="background: #f0f9ff; padding: 10px; border-radius: 8px; margin: 10px 0; font-size: 13px;">
+                    <strong>Formula:</strong> Sch=Σ(F)÷7.5 | Req=Σ(G)÷7.5 | Net=Sch-Req | Hourly=Σ(H)
+                </div>`;
 
-            if (Object.keys(dayData).length > 0) {
+            if (Object.keys(dayData).length) {
                 Object.values(dayData).forEach(d => {
                     content += `
-                        <div style="margin: 20px 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+                        <div style="margin: 15px 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
                             <div style="background: #4facfe; color: white; padding: 12px; font-weight: 600;">${d.displayName}</div>
                             <div style="padding: 15px;">
                                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px;">
@@ -735,15 +686,15 @@
                                         <div style="font-size: 18px; color: #1e40af;">${(d.required || 0).toFixed(1)}</div>
                                     </div>
                                     <div style="text-align: center; padding: 10px; border: 2px solid #1e40af; border-radius: 8px;">
-                                        <div style="font-weight: 600; color: #1e40af;">Net Staffing</div>
+                                        <div style="font-weight: 600; color: #1e40af;">Net</div>
                                         <div style="font-size: 18px; color: #1e40af;">${(d.net_staffing || 0).toFixed(1)}</div>
                                     </div>
                                 </div>
                     `;
 
-                    if (d.hourly && Object.keys(d.hourly).length > 0) {
-                        content += `<h5>⏰ Hourly Breakdown (Column H):</h5>
-                            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 15px 0;">`;
+                    if (d.hourly && Object.keys(d.hourly).length) {
+                        content += `<h5 style="margin: 10px 0;">⏰ Hourly Net Staffing (Column H Sum):</h5>
+                            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px;">`;
 
                         for (let hour = 0; hour < 24; hour++) {
                             const hData = d.hourly[hour];
@@ -759,19 +710,28 @@
 
                             content += `
                                 <div style="text-align: center; padding: 6px 2px; background: ${bg}; border: 1px solid ${color}; border-radius: 4px; font-size: 10px;">
-                                    <div style="font-weight: 600; color: ${color};">${hour.toString().padStart(2, '0')}:00</div>
+                                    <div style="font-weight: 600; color: ${color}; margin-bottom: 2px;">${hour.toString().padStart(2, '0')}:00</div>
                                     <div style="color: ${color}; font-weight: 600; font-size: 9px;">${hasData ? val.toFixed(3) : '-'}</div>
                                 </div>
                             `;
                         }
 
-                        content += `</div>`;
+                        content += `</div>
+                            <div style="margin-top: 10px; padding: 8px; background: #f8fafc; border-radius: 6px; font-size: 11px; text-align: center;">
+                                Green (>5) | Yellow (1-5) | Red (<1) | Gray (No Data)
+                            </div>`;
                     }
 
-                    content += `</div></div>`;
+                    content += `
+                                <div style="margin-top: 10px; font-size: 12px; color: #6b7280;">
+                                    Queue: ${d.originalQueue || 'All'} | Channel: ${d.originalChannel || 'All'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
                 });
             } else {
-                content += '<p style="text-align: center; color: #6b7280;">No data</p>';
+                content += '<p style="text-align: center; color: #6b7280; margin: 20px 0;">No data available</p>';
             }
 
             showModal(date.toDateString(), content);
@@ -789,43 +749,186 @@
         }
 
         function showHelp() {
-            showModal('How to Use', `
-                <div style="background: #e0f2fe; padding: 20px; border-radius: 12px;">
-                    <h5>Quick Start:</h5>
+            showModal('How to Use StaffCal', `
+                <div style="background: #e0f2fe; padding: 20px; border-radius: 12px; margin-bottom: 15px;">
+                    <h5 style="margin-bottom: 10px;">🚀 Quick Start:</h5>
                     <ol style="margin-left: 20px; line-height: 1.8;">
-                        <li>Download CSV from Google Sheets</li>
-                        <li>Import the CSV file</li>
-                        <li>Use filters to view specific teams</li>
-                        <li>Click dates for hourly details</li>
+                        <li>Click "Download" to get CSV from Google Sheets</li>
+                        <li>Click "Import" and select the CSV file</li>
+                        <li>Use Queue/Channel filters to analyze specific teams</li>
+                        <li>Navigate months using ← → arrows</li>
+                        <li>Click any date to see detailed hourly breakdown</li>
                     </ol>
-                    <div style="margin-top: 15px; background: #fff; padding: 10px; border-radius: 6px;">
-                        <strong>Formula:</strong><br>
-                        Scheduled = Σ(F) ÷ 7.5<br>
-                        Required = Σ(G) ÷ 7.5<br>
-                        Net = Scheduled - Required<br>
-                        Hourly = Σ(H) per interval
+                </div>
+                <div style="background: #dcfce7; padding: 15px; border-radius: 12px;">
+                    <h5 style="margin-bottom: 10px;">📈 Calculation Formula:</h5>
+                    <div style="font-size: 14px; line-height: 1.6;">
+                        • <strong>Scheduled</strong> = Sum of Column F ÷ 7.5<br>
+                        • <strong>Required</strong> = Sum of Column G ÷ 7.5<br>
+                        • <strong>Net Staffing</strong> = Scheduled - Required<br>
+                        • <strong>Hourly Values</strong> = Sum of Column H per hour interval
                     </div>
                 </div>
             `);
         }
 
         function debugData() {
+            const selQ = document.getElementById('queueFilter').value;
+            const selC = document.getElementById('channelFilter').value;
+            
             const info = {
                 totalRecords: assembledData.length,
-                queues: Array.from(availableQueues),
-                channels: Array.from(availableChannels),
-                sample: assembledData.slice(0, 3).map(r => {
+                currentFilters: {
+                    queue: selQ,
+                    channel: selC
+                },
+                availableQueues: Array.from(availableQueues).sort(),
+                availableChannels: Array.from(availableChannels),
+                processedDates: Object.keys(processedData).sort(),
+                sampleRawData: assembledData.slice(0, 3).map(r => {
                     const c = Object.values(r);
                     return { date: c[0], time: c[1], queue: c[4], channel: c[3], F: c[5], G: c[6], H: c[7] };
                 })
             };
+
+            // Analyze current month's data based on selected filters
+            const currentMonthKey = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
+            const currentMonthDates = Object.keys(processedData).filter(d => d.startsWith(currentMonthKey));
             
-            showModal('Debug Info', `<pre style="font-size: 11px; overflow: auto; max-height: 400px;">${JSON.stringify(info, null, 2)}</pre>`);
+            if (currentMonthDates.length > 0) {
+                info.currentMonthAnalysis = {
+                    month: `${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`,
+                    datesWithData: currentMonthDates.length,
+                    sampleDate: currentMonthDates[0]
+                };
+
+                // Analyze a sample date from current month
+                const sampleDateKey = currentMonthDates[0];
+                const sampleDateData = processedData[sampleDateKey];
+                
+                info.sampleDateBreakdown = {
+                    date: sampleDateKey,
+                    queueChannelCombinations: Object.keys(sampleDateData).length,
+                    combinations: {}
+                };
+
+                Object.entries(sampleDateData).forEach(([key, val]) => {
+                    const matchesFilter = (selQ === 'all' || val.queue === selQ) && 
+                                         (selC === 'all' || val.channel.toLowerCase() === selC.toLowerCase());
+                    
+                    if (matchesFilter) {
+                        info.sampleDateBreakdown.combinations[key] = {
+                            scheduled: val.total,
+                            required: val.required,
+                            net: val.net_staffing,
+                            hourly_hours_with_data: Object.keys(val.hourly).length,
+                            sample_hourly: Object.fromEntries(Object.entries(val.hourly).slice(0, 3))
+                        };
+                    }
+                });
+            }
+
+            // If specific queue is selected, analyze that queue across all dates
+            if (selQ !== 'all') {
+                const queueDates = Object.keys(processedData).filter(date => {
+                    return Object.keys(processedData[date]).some(key => key.includes(selQ));
+                });
+
+                info.selectedQueueAnalysis = {
+                    queue: selQ,
+                    channel: selC,
+                    datesWithData: queueDates.length,
+                    sampleDates: queueDates.slice(0, 5)
+                };
+
+                // Detailed analysis for first date with this queue
+                if (queueDates.length > 0) {
+                    const testDate = queueDates[0];
+                    const testData = processedData[testDate];
+                    
+                    Object.entries(testData).forEach(([key, val]) => {
+                        if (key.includes(selQ) && (selC === 'all' || val.channel.toLowerCase() === selC.toLowerCase())) {
+                            info.selectedQueueDetailedExample = {
+                                date: testDate,
+                                key: key,
+                                scheduled: val.total,
+                                required: val.required,
+                                net: val.net_staffing,
+                                hourlyBreakdown: val.hourly
+                            };
+                        }
+                    });
+                }
+            }
+
+            // Raw data verification for currently selected filters
+            if (assembledData.length > 0 && currentMonthDates.length > 0) {
+                const testDate = currentMonthDates[0];
+                const rawDateEntries = assembledData.filter(r => {
+                    const c = Object.values(r);
+                    const date = formatDate(c[0]);
+                    const queue = (c[4] || '').trim();
+                    const channel = (c[3] || '').trim().toLowerCase();
+                    
+                    const matchesDate = date === testDate;
+                    const matchesQueue = selQ === 'all' || queue === selQ;
+                    const matchesChannel = selC === 'all' || channel === selC.toLowerCase();
+                    
+                    return matchesDate && matchesQueue && matchesChannel;
+                });
+
+                let rawSumF = 0, rawSumG = 0;
+                const rawHourlyH = {};
+                
+                rawDateEntries.forEach(r => {
+                    const c = Object.values(r);
+                    rawSumF += parseFloat(c[5] || 0);
+                    rawSumG += parseFloat(c[6] || 0);
+                    
+                    const hour = getHour(c[1]);
+                    const H = parseFloat(c[7] || 0);
+                    if (hour !== null) {
+                        if (!rawHourlyH[hour]) rawHourlyH[hour] = 0;
+                        rawHourlyH[hour] += H;
+                    }
+                });
+
+                info.RAW_DATA_VERIFICATION = {
+                    testDate: testDate,
+                    matchingRawRows: rawDateEntries.length,
+                    raw_sum_F: rawSumF,
+                    raw_sum_G: rawSumG,
+                    EXPECTED_scheduled: (rawSumF / 7.5).toFixed(3),
+                    EXPECTED_required: (rawSumG / 7.5).toFixed(3),
+                    EXPECTED_net: ((rawSumF / 7.5) - (rawSumG / 7.5)).toFixed(3),
+                    raw_hourly_H_sums: rawHourlyH,
+                    sample_3_rows: rawDateEntries.slice(0, 3).map(r => {
+                        const c = Object.values(r);
+                        return {
+                            time: c[1],
+                            queue: c[4],
+                            channel: c[3],
+                            F: c[5],
+                            G: c[6],
+                            H: c[7]
+                        };
+                    })
+                };
+            }
+            
+            showModal('🔍 Debug Analysis - Current Filters', `
+                <div style="font-family: monospace; font-size: 10px; max-height: 500px; overflow: auto; background: #f8fafc; padding: 15px; border-radius: 8px;">
+                    <div style="font-family: sans-serif; background: #fef3c7; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                        <strong>Current Filters:</strong> Queue: ${selQ} | Channel: ${selC}
+                    </div>
+                    <pre>${JSON.stringify(info, null, 2)}</pre>
+                </div>
+            `);
         }
 
         function initialize() {
             processedData = sampleData;
-            availableQueues = new Set(['Customer Service']);
+            availableQueues = new Set(['Sample']);
             availableChannels = new Set(['email']);
             dataSource = 'sample';
             updateFilterDropdowns();
